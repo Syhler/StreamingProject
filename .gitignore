@@ -44,6 +44,10 @@ jspm_packages/
 # TypeScript v1 declaration files
 typings/
 
+
+./TorrentService/test/
+
+
 # TypeScript cache
 *.tsbuildinfo
 
