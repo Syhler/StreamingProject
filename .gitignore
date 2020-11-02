@@ -46,6 +46,7 @@ typings/
 
 ./TorrentService/test/
 ./StreamingService/test/
+./sharedData/
 
 
 # TypeScript cache
