@@ -42,7 +42,7 @@ class TorrentDownloader {
      */
     handleAddedTorrent(torrent)
     {
-        const index = this.currentlyDownloadingTorrents === 0 ? 0 : this.currentlyDownloadingTorrents.length -1;
+        const index = this.currentlyDownloadingTorrents.length === 0 ? 0 : this.currentlyDownloadingTorrents.length -1;
 
         const interval = setInterval(() => {
             this.currentlyDownloadingTorrents[index] = {
@@ -53,9 +53,21 @@ class TorrentDownloader {
             };
         }, 2000)
 
-        torrent.on("done", function ()
-        {
-            clearInterval(interval)
+        const test = (callback) => {
+
+            torrent.on("done", function ()
+            {
+                clearInterval(interval)
+                callback()
+            })
+        }
+
+        test(() => {
+            if (this.currentlyDownloadingTorrents === undefined)
+            {
+                console.log()
+                return;
+            }
 
             this.currentlyDownloadingTorrents[index] = {
                 progress: 1,
@@ -64,6 +76,7 @@ class TorrentDownloader {
                 finished: true
             };
         })
+
     }
 
     checkIfAlreadyExist(infoHash) {
