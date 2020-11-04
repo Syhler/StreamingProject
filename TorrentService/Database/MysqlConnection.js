@@ -1,6 +1,14 @@
-const mysql = require("mysql")
+const mysql = require("mysql2/promise")
 
+/*
+DownloadMovie
+Movie
+PendingMovie
+TorrentInformation
 
+ */
+
+/*
 const addMovie = (name, path, onSuccess, onError) => {
 
     const sql = "insert into testTable(movieName, path) values ("+mysql.escape(name)+", "+mysql.escape(path)+")"
@@ -25,37 +33,33 @@ const getMovies = (onSuccess, onError) => {
         onSuccess(rows)
     }, onError)
 }
+*/
 
-const sendQuery = (sql, onSuccess, onError) =>
+
+const sendQuery = (sql, onSuccess, onError, conn) =>
 {
-    const conn = createConnection();
-
-    conn.connect((err) => {
-        if (err){
+    conn.query(sql, function (err, result) {
+        if (err)
+        {
             onError(err)
         }
 
-        conn.query(sql, function (err, result) {
-            if (err)
-            {
-                onError(err)
-            }
-
-            onSuccess(result)
-        })
+        onSuccess(result)
     })
 }
 
-
-const createConnection = () =>
-{
-    return mysql.createConnection({
+const getConnectionData = () => {
+    return{
         host: 'localhost',
         user: "testuser",
         password: "localdb",
-        database: "Test"
-    })
+        database: "StreamingService"
+    }
 }
 
+const pool = mysql.createPool(getConnectionData());
 
-module.exports = {addMovie, deleteMovie, getMovies}
+
+
+module.exports = {getConnectionData, getPools: pool}
+//module.exports = {addMovie, deleteMovie, getMovies}

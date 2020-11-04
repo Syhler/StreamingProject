@@ -1,5 +1,7 @@
 const TorrentAlreadyAddedError = require("../Errors/TorrentAlreadyAddedError")
-
+const downloadMovieTable = require("../Database/Tables/DownloadMovie")
+const pendingMovieTable = require("../Database/Tables/PendingMovie")
+const path = require('path');
 
 class TorrentDownloader {
 
@@ -9,8 +11,12 @@ class TorrentDownloader {
     }
 
 
-    download(magnetUri)
+    async download(magnetUri)
     {
+        //const path = "../../sharedData"
+
+        const torrentPath = path.join(__dirname, "..","..","sharedData")
+
         const infoHash = this.getInfoHashFromMagnet(magnetUri)
 
         const alreadyExist = this.checkIfAlreadyExist(infoHash)
@@ -19,7 +25,8 @@ class TorrentDownloader {
             throw new TorrentAlreadyAddedError("Torrent already added");
         }
 
-        this.client.add(magnetUri, {path: './test'}, (torrent) => this.handleAddedTorrent(torrent))
+        this.client.add(magnetUri, {path: torrentPath}, (torrent) => this.handleAddedTorrent(torrent))
+
     }
 
     getInfoHashFromMagnet(magnetUri) {
@@ -40,9 +47,17 @@ class TorrentDownloader {
      * Handle the currently added torrent
      * @param torrent that have been added to the client
      */
-    handleAddedTorrent(torrent)
+    async handleAddedTorrent(torrent)
     {
         const index = this.currentlyDownloadingTorrents.length === 0 ? 0 : this.currentlyDownloadingTorrents.length -1;
+
+        const data = {
+            title: torrent.name,
+            path: torrent.path + "/"+torrent.name,
+            magnetLink: torrent.magnetURI
+        }
+
+        const insertResult = await downloadMovieTable.insert(data)
 
         const interval = setInterval(() => {
             this.currentlyDownloadingTorrents[index] = {
@@ -53,7 +68,7 @@ class TorrentDownloader {
             };
         }, 2000)
 
-        const test = (callback) => {
+        const onDone = async (callback) => {
 
             torrent.on("done", function ()
             {
@@ -62,10 +77,9 @@ class TorrentDownloader {
             })
         }
 
-        test(() => {
+        await onDone(async () => {
             if (this.currentlyDownloadingTorrents === undefined)
             {
-                console.log()
                 return;
             }
 
@@ -75,6 +89,11 @@ class TorrentDownloader {
                 name: torrent.name,
                 finished: true
             };
+
+            await downloadMovieTable.update(insertResult[0].insertId, true);
+            await pendingMovieTable.insert(torrent.magnetURI)
+            console.log("Done")
+
         })
 
     }
