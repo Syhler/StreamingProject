@@ -1,51 +1,37 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs')
+const movieTable = require("../Database/Table/Movie")
+const streaming = require("../Modules/Streaming")
+
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
+router.get('/:id', async function (req, res, next) {
 
 
-    const path = './test/BigBuckBunny.mp4';
+    const movie = await movieTable.getById(req.params.id)
 
-    fs.stat(path, (err, stat) => {
+    if (movie.length === 0)
+    {
+        return res.status(404).send({message: "Movie not found"})
+    }
 
-        // Handle file not found
-        if (err !== null && err.code === 'ENOENT') {
-            res.sendStatus(404);
-        }
+    const path = movie[0].path
+    const range = req.headers.range;
 
-        const fileSize = stat.size
-        const range = req.headers.range
+    streaming.stream(path, range, (header, file) => {
 
-        if (range) {
+        res.writeHead(206, header);
+        file.pipe(res);
 
-            const parts = range.replace(/bytes=/, "").split("-");
+    }, (header, file) => {
 
-            const start = parseInt(parts[0], 10);
-            const end = parts[1] ? parseInt(parts[1], 10) : fileSize-1;
+        res.writeHead(200, header);
+        file.pipe(res)
 
-            const chunksize = (end-start)+1;
-            const file = fs.createReadStream(path, {start, end});
-            const head = {
-                'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-                'Accept-Ranges': 'bytes',
-                'Content-Length': chunksize,
-                'Content-Type': 'video/mp4',
-            }
+    }, (message) => {
+        res.status(404).send(message)
+    })
 
-            res.writeHead(206, head);
-            file.pipe(res);
-        } else {
-            const head = {
-                'Content-Length': fileSize,
-                'Content-Type': 'video/mp4',
-            }
-
-            res.writeHead(200, head);
-            fs.createReadStream(path).pipe(res);
-        }
-    });
 
 });
 
